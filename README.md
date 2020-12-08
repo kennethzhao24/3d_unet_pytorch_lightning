@@ -11,7 +11,7 @@ git clone https://github.com/kennethzhao24/3d_unet_pytorch_lightning
 First download the [SHREC 2020 dataset](www2.projects.science.uu.nl/shrec/cryo-et/). Unzip it and put it in directory '3d_unet_pytorch_lightning/data/shrec2020'
 ```
 cd 3d_unet_pytorch_lightning
-pip install -r requirement
+pip install -r requirements.txt
 ```
 Before training, first run
 ```
