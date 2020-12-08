@@ -1,12 +1,10 @@
 # 3D U-Net with PyTorch-Lightning
 
-This repository includes Pytorch-Lightning implementation of 3D U-Net.
-### Requirements
-Pytorch, Pytorch-lightning, visdom, skimage, pycm, prettytable
+This repository includes Pytorch-Lightning implementation of 3D U-Net. Current repo supports both 10045 and shrec2020 dataset.
 
 ### Installation
 ```
-git clone http://10.0.5.61/cbmi/3dpp/3dunet-pytorch-lightning.git
+git clone https://github.com/kennethzhao24/3d_unet_pytorch_lightning
 ```
 
 ### Usage
@@ -22,8 +20,7 @@ To test your trained model, run
 ```
 python test.py
 ```
- - For oneclass model, it will generate mrcfile and output mean segmentation metrics
- - For multiclass model, it will generate mrcfile mask for each class, output segmentation metrics for each class and mean values
+ - Segmentation masks for each class, output segmentation metrics for each class and mean values will be generated
  
 For oneclass detection evaluation, run
 ```

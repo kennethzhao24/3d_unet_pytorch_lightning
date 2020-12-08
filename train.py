@@ -8,7 +8,7 @@ from torch.utils.data import DataLoader
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint, LearningRateMonitor
 from pytorch_lightning import loggers
-from dataset.preprocessing import JDataset, SHREC_2020_Dataset
+from dataset.preprocessing import SHREC_2020_Dataset
 from model.unet import UNet3D
 import argparse
 
@@ -20,13 +20,9 @@ if not sys.warnoptions:
 
 parser = argparse.ArgumentParser(description='Training for 3D U-Net models')
 # dataset parameters
-parser.add_argument('--dataset', help='dataset type', default='shrec')
 parser.add_argument('--block_size', help='block size', default=72)
 # model parameters
-parser.add_argument('--model', help='model name', default='UNet')
 parser.add_argument('--f_maps', help='feature size', default=[32, 64, 128, 256])
-parser.add_argument('--num_class', help='number of classes', default=12)
-
 
 # training parameters
 parser.add_argument('--loss_func', help='loss function type', default='Dice')
@@ -37,23 +33,17 @@ parser.add_argument('--max_epoch', help='number of epochs', default=100)
 
 args = parser.parse_args()
 
-dataset = args.dataset
 block_size = args.block_size
 
-model = args.model
 f_maps = args.f_maps
-num_class = args.num_class
 
 loss_func = args.loss_func
 lr = args.learning_rate
 batch_size = args.batch_size
 max_epoch = args.max_epoch
 
-hparams = {'dataset': dataset,
-           'block_size': block_size,
-           'model': model,
+hparams = {'block_size': block_size,
            'f_maps': f_maps,
-           'num_class': num_class,
            'loss function': loss_func,
            'learning_rate': lr,
            'batch_size': batch_size,
@@ -66,13 +56,7 @@ class UNetExperiment(pl.LightningModule):
 
         self.hparams = hparams
 
-        if self.hparams['model'] == 'UNet':
-            if self.hparams['num_class'] > 1:
-                self.model = UNet3D(f_maps=self.hparams['f_maps'], 
-                                    out_channels=self.hparams['num_class']+1)
-            else:
-                self.model = UNet3D(f_maps=self.hparams['f_maps'], 
-                                    out_channels=1)
+        self.model = UNet3D(f_maps=self.hparams['f_maps'], out_channels=self.hparams['num_class']+1)
 
         if self.hparams['loss function'] == 'Dice':
             self.loss_function = DiceLoss()
@@ -85,9 +69,7 @@ class UNetExperiment(pl.LightningModule):
     def training_step(self, train_batch, batch_idx):
         img, label = train_batch
         output = self.forward(img)
-        if self.hparams['num_class'] > 1:
-            label = label.view(-1, 
-                               self.hparams['num_class']+1,
+        label = label.view(-1, self.hparams['num_class']+1,
                                self.hparams['block_size'],
                                self.hparams['block_size'],
                                self.hparams['block_size'],)
@@ -98,9 +80,7 @@ class UNetExperiment(pl.LightningModule):
     def validation_step(self, val_batch, batch_idx):
         img, label = val_batch
         output = self.forward(img)
-        if self.hparams['num_class'] > 1:
-            label = label.view(-1, 
-                               self.hparams['num_class']+1,
+        label = label.view(-1, self.hparams['num_class']+1,
                                self.hparams['block_size'],
                                self.hparams['block_size'],
                                self.hparams['block_size'],)
@@ -113,38 +93,22 @@ class UNetExperiment(pl.LightningModule):
         self.log('val_iou', iou, on_step=False, on_epoch=True)
 
     def train_dataloader(self):
-        if self.hparams['dataset'] == '10045':
-            return DataLoader(JDataset(mode='train',
-                                       block_size=self.hparams['block_size']), 
-                                       batch_size=self.hparams['batch_size'], 
-                                       num_workers=32, 
-                                       shuffle=True, 
-                                       pin_memory=True)
-        if self.hparams['dataset'] == 'shrec':
-            return DataLoader(SHREC_2020_Dataset(mode='train', 
-                                                 block_size=self.hparams['block_size'],
-                                                 num_class=self.hparams['num_class']),
-                                                 batch_size=self.hparams['batch_size'], 
-                                                 num_workers=32, 
-                                                 shuffle=True, 
-                                                 pin_memory=True)
+        return DataLoader(SHREC_2020_Dataset(mode='train', 
+                                             block_size=self.hparams['block_size'],
+                                             num_class=self.hparams['num_class']),
+                                             batch_size=self.hparams['batch_size'], 
+                                             num_workers=32, 
+                                             shuffle=True, 
+                                             pin_memory=True)
 
     def val_dataloader(self):
-        if self.hparams['dataset'] == '10045':
-            return DataLoader(JDataset(mode='val',
-                                       block_size=self.hparams['block_size']), 
-                                       batch_size=self.hparams['batch_size'], 
-                                       num_workers=32, 
-                                       shuffle=False, 
-                                       pin_memory=True)
-        if self.hparams['dataset'] == 'shrec':
-            return DataLoader(SHREC_2020_Dataset(mode='val', 
-                                                 block_size=self.hparams['block_size'],
-                                                 num_class=self.hparams['num_class']),
-                                                 batch_size=self.hparams['batch_size'], 
-                                                 num_workers=32, 
-                                                 shuffle=False, 
-                                                 pin_memory=True)
+        return DataLoader(SHREC_2020_Dataset(mode='val', 
+                                             block_size=self.hparams['block_size'],
+                                             num_class=self.hparams['num_class']),
+                                             batch_size=self.hparams['batch_size'], 
+                                             num_workers=32, 
+                                             shuffle=True, 
+                                             pin_memory=True)
 
     def configure_optimizers(self):
         optimizer = optim.Adam(self.parameters(), 
@@ -157,16 +121,7 @@ checkpoint_callback = ModelCheckpoint(save_top_k=10,
                                       monitor='val_loss',
                                       mode='min')
 
-if hparams['num_class'] > 1:
-    logger_name = "{}_{}_{}_multiclass_epoch_{}".format(hparams['model'],
-                                                        hparams['dataset'],
-                                                        hparams['loss function'],
-                                                        str(hparams['max_epoch']))
-else:
-    logger_name = "{}_{}_{}_oneclass_epoch_{}".format(hparams['model'],
-                                                        hparams['dataset'],
-                                                        hparams['loss function'],
-                                                        str(hparams['max_epoch']))   
+logger_name = "{}_multiclass_epoch_{}".format(hparams['loss function'], str(hparams['max_epoch']))
 
 tb_logger = loggers.TensorBoardLogger("tb_logs", name=logger_name)
 
