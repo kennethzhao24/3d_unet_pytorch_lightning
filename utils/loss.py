@@ -43,13 +43,13 @@ class TverskyLoss(nn.Module):
         targets = flatten(targets)
         
         #True Positives, False Positives & False Negatives
-        TP = (inputs * targets).sum()    
-        FP = ((1-targets) * inputs).sum()
-        FN = (targets * (1-inputs)).sum()
+        TP = (inputs * targets).sum(-1)    
+        FP = ((1-targets) * inputs).sum(-1)
+        FN = (targets * (1-inputs)).sum(-1)
        
         Tversky = (TP + smooth) / (TP + alpha*FP + beta*FN + smooth)  
         
-        return 1 - Tversky
+        return 1 - Tversky.mean()
 
 # IoU Loss
 class IoULoss(nn.Module):
@@ -67,13 +67,13 @@ class IoULoss(nn.Module):
         
         #intersection is equivalent to True Positive count
         #union is the mutually inclusive area of all labels & predictions 
-        intersection = (inputs * targets).sum()
-        total = (inputs + targets).sum()
+        intersection = (inputs * targets).sum(-1)
+        total = (inputs + targets).sum(-1)
         union = total - intersection 
         
         IoU = (intersection + smooth)/(union + smooth)
                 
-        return 1 - IoU
+        return 1 - IoU.mean()
 
 # Focal Loss
 class FocalLoss(nn.Module):
@@ -111,11 +111,11 @@ class FocalTverskyLoss(nn.Module):
         targets = flatten(targets)
         
         #True Positives, False Positives & False Negatives
-        TP = (inputs * targets).sum()    
-        FP = ((1-targets) * inputs).sum()
-        FN = (targets * (1-inputs)).sum()
+        TP = (inputs * targets).sum(-1)    
+        FP = ((1-targets) * inputs).sum(-1)
+        FN = (targets * (1-inputs)).sum(-1)
         
         Tversky = (TP + smooth) / (TP + alpha*FP + beta*FN + smooth)  
-        FocalTversky = (1 - Tversky)**gamma
+        FocalTversky = (1 - Tversky.mean())**gamma
                        
         return FocalTversky
