@@ -7,7 +7,7 @@ import warnings
 
 # data preparation for shrec20
 class SHREC_2020_Dataset(data.Dataset):
-    def __init__(self, mode='train', block_size=72, label_type='mask', num_class = 12, train_num=0, random_num=1000):
+    def __init__(self, mode='train', block_size=72, label_type='mask', num_class = 12, random_num=1000):
         self.mode = mode
         self.label_type = label_type
         self.num_class = num_class
@@ -39,7 +39,7 @@ class SHREC_2020_Dataset(data.Dataset):
             self.location.append(pd.read_csv('./data/shrec2020/model_%d/particle_locations.txt' % i, header=None, sep=' '))
         
         self.data_index = []
-        
+       
         if not self.mode == 'test':
             for i in self.data_range:
                 location = self.location[i]
@@ -71,11 +71,6 @@ class SHREC_2020_Dataset(data.Dataset):
                             
                             self.data_index.append(np.array([i, z, y, x]))
         
-        # slice from full dataset
-        if self.mode == 'train' and train_num > 0 and train_num < len(self.data_index):
-            np.random.shuffle(self.data_index)
-            self.data_index = self.data_index[0:train_num]
-        
         # add random samples in training set
         if mode == 'train' and random_num > 0:
             print('random samples num:', random_num)
@@ -97,7 +92,7 @@ class SHREC_2020_Dataset(data.Dataset):
     def __getitem__(self, index):
         img, label = self.data[index]
 
-        # random 3D rotation
+        # random 3D rotation for data augmentation
         if self.mode == 'train':
             degree = np.random.randint(4, size=3)
             img = self.__rotation3D(img, degree)
